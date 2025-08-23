@@ -10,11 +10,11 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleSubmit = async () => {
+  const handleSubmitES = async () => {
     setLoading(true);
     setError('');
     try{
-        const response = await axios.post("http://localhost:8080/api/email/generate", {
+        const response = await axios.post("http://localhost:8080/api/email/generateES", {
           content,
           tone
         })
@@ -24,6 +24,23 @@ function App() {
       setError('Error al generar la respuesta. Por favor, inténtalo de nuevo.');
     }finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmitEN = async () => {
+    setLoading(true);
+    setError('');
+    try{
+        const response = await axios.post("http://localhost:8080/api/email/generateEN", {
+            content,
+            tone
+        })
+        setGeneratedReply(typeof response.data === 'string' ? response.data : JSON.stringify(response.data));
+
+    }catch (err) {
+        setError('Error al generar la respuesta. Por favor, inténtalo de nuevo.');
+    }finally {
+        setLoading(false);
     }
   };
 
@@ -60,12 +77,22 @@ function App() {
 
         <Button
           variant="contained"
-          onClick={handleSubmit}
+          onClick={handleSubmitES}
           disabled={!content || loading}
           fullWidth
+          sx={{ mb: 2 }}
           >
           {loading ? <CircularProgress size={24}/> : 'Generar Respuesta'}
         </Button>
+
+          <Button
+              variant="contained"
+              onClick={handleSubmitEN}
+              disabled={!content || loading}
+              fullWidth
+          >
+              {loading ? <CircularProgress size={24}/> : 'Generate Response'}
+          </Button>
       </Box>
 
       {error && (

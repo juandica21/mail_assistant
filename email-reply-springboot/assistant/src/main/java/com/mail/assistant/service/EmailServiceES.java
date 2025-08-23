@@ -12,7 +12,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.util.Map;
 
 @Service
-public class EmailService {
+public class EmailServiceES {
 
     @Value("${gemini.api.url}")
     private String geminiApiUrl;
@@ -23,7 +23,7 @@ public class EmailService {
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
 
-    public EmailService(WebClient.Builder webClientBuilder, ObjectMapper objectMapper) {
+    public EmailServiceES(WebClient.Builder webClientBuilder, ObjectMapper objectMapper) {
         this.webClient = webClientBuilder.build();
         this.objectMapper = objectMapper;
     }
@@ -66,20 +66,26 @@ public class EmailService {
         return "No Content found in response";
     }
 
-    private String buildPrompt(EmailRequest emailRequest){
+    private String buildPrompt(EmailRequest emailRequest) {
 
         if (emailRequest.getTone() == null || emailRequest.getContent() == null) {
-            throw new IllegalArgumentException("Cannot be null");
+            throw new IllegalArgumentException("Content y tone no pueden ser nulos");
         }
 
         StringBuilder prompt = new StringBuilder();
-        prompt.append("Genera una respuesta para el siguiente mail recibido. No generes una línea de asunto, porfavor.");
+        prompt.append("Genera una respuesta para el siguiente mail recibido. No generes una línea de asunto, por favor. En español!!!");
 
-        if (emailRequest.getTone() != null && !emailRequest.getTone().isEmpty()){
-            prompt.append("\nUsa un tono ").append(emailRequest.getTone());
+        if (emailRequest.getUserInfo() != null && !emailRequest.getUserInfo().isEmpty()) {
+            prompt.append("\nContexto adicional del usuario: ").append(emailRequest.getUserInfo());
         }
-        prompt.append("\nOriginal mail: \n").append(emailRequest.getContent());
-        return prompt.toString();
 
+        if (emailRequest.getTone() != null && !emailRequest.getTone().isEmpty()) {
+            prompt.append("\nUsa un tono: ").append(emailRequest.getTone());
+        }
+
+        prompt.append("\nMail original:\n").append(emailRequest.getContent());
+
+        return prompt.toString();
     }
+
 }

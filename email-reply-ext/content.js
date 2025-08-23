@@ -1,11 +1,5 @@
-// Encuentra la barra de herramientas del correo
 function findComposeToolbar() {
-    const selectors = [
-        '.btC',
-        '.aDh',
-        '[role="toolbar"]',
-        '.gU.Up'
-    ];
+    const selectors = ['.btC', '.aDh', '[role="toolbar"]', '.gU.Up'];
     for (const selector of selectors) {
         const toolbar = document.querySelector(selector);
         if (toolbar) return toolbar;
@@ -13,28 +7,20 @@ function findComposeToolbar() {
     return null;
 }
 
-// Crea el botón "RespuestaIA"
-function createBtnReplyAI() {
+function createBtnReplyAI(label, className) {
     const btn = document.createElement('div');
-    btn.className = 'T-I J-J5-Ji aoO v7 T-I-atl L3 ai-reply-button';
+    btn.className = `T-I J-J5-Ji aoO v7 T-I-atl L3 ${className}`;
     btn.style.marginRight = '8px';
     btn.style.padding = '0 16px';
-    btn.style.borderRadius = '16px'; 
-    btn.innerHTML = 'RespuestaIA';
+    btn.style.borderRadius = '16px';
+    btn.innerHTML = label;
     btn.setAttribute('role', 'button');
-    btn.setAttribute('data-tooltip', 'Generar RespuestaIA');
-
+    btn.setAttribute('data-tooltip', `Generar ${label}`);
     return btn;
 }
 
-// Obtiene el contenido del email
 function getEmailContent() {
-    const selectors = [
-        '.h7',
-        '.a3s.aiL',
-        '.gmail_quote',
-        '[role="presentation"]'
-    ];
+    const selectors = ['.h7', '.a3s.aiL', '.gmail_quote', '[role="presentation"]'];
     for (const selector of selectors) {
         const cont = document.querySelector(selector);
         if (cont) return cont.innerText.trim();
@@ -42,51 +28,62 @@ function getEmailContent() {
     return '';
 }
 
-// Inyecta el botón en la barra de herramientas
-function injectButton() {
-    const existingBtn = document.querySelector('.ai-reply-button');
+async function generateReply(language, emailContent) {
+    const { backendUrl, userInfo } = await chrome.storage.sync.get(['backendUrl', 'userInfo']);
+
+    const selectedUserInfo = userInfo || "No hay datos adicionales"; // <-- valor por defecto
+
+    if (!backendUrl) {
+        alert('Configura el backend en el panel lateral');
+        throw new Error('Falta configuración');
+    }
+
+    const endpoint = language === 'ES' ? '/api/email/generateES' : '/api/email/generateEN';
+    const response = await fetch(`${backendUrl}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            content: emailContent,
+            tone: 'professional',
+            userInfo: selectedUserInfo
+        })
+    });
+
+    if (!response.ok) throw new Error('Error en la consulta a la API');
+    return await response.text();
+}
+
+function insertTextInCompose(text) {
+    const composeBox = document.querySelector('[role="textbox"][g_editable="true"]');
+    if (composeBox) {
+        composeBox.innerHTML = '';
+        composeBox.focus();
+        document.execCommand('insertText', false, text);
+    } else {
+        console.error('ComposeBox no encontrada...');
+    }
+}
+
+function injectButtonES() {
+    const existingBtn = document.querySelector('.ai-reply-button-es');
     if (existingBtn) existingBtn.remove();
 
     const toolbar = findComposeToolbar();
-    if (!toolbar) {
-        console.log('No Toolbar encontrada...');
-        return;
-    }
+    if (!toolbar) return;
 
-    console.log('Toolbar encontrada...');
-
-    const btn = createBtnReplyAI();
-
+    const btn = createBtnReplyAI('RespuestaIA', 'ai-reply-button-es');
     btn.addEventListener('click', async () => {
         try {
             btn.innerHTML = 'Generando...';
             btn.disabled = true;
 
             const emailContent = getEmailContent();
-            const response = await fetch('http://localhost:8080/api/email/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    content: emailContent,
-                    tone: "professional"
-                })
-            });
+            const generatedReply = await generateReply('ES', emailContent);
 
-            if (!response.ok) throw new Error('Error en la consulta a la API');
-
-            const generatedReply = await response.text();
-
-            const composeBox = document.querySelector('[role="textbox"][g_editable="true"]');
-            if (composeBox) {
-                composeBox.focus();
-                document.execCommand('insertText', false, generatedReply);
-            } else {
-                console.error('ComposeBox no encontrada...');
-            }
+            insertTextInCompose(generatedReply);
         } catch (err) {
-            alert('Error al intentar crear una respuesta...');
+            alert('Error al generar respuesta');
+            console.error(err);
         } finally {
             btn.innerHTML = 'RespuestaIA';
             btn.disabled = false;
@@ -96,7 +93,35 @@ function injectButton() {
     toolbar.insertBefore(btn, toolbar.firstChild);
 }
 
-// Observador para detectar cuando se abre un compose nuevo
+function injectButtonEN() {
+    const existingBtn = document.querySelector('.ai-reply-button-en');
+    if (existingBtn) existingBtn.remove();
+
+    const toolbar = findComposeToolbar();
+    if (!toolbar) return;
+
+    const btn = createBtnReplyAI('AI Reply', 'ai-reply-button-en');
+    btn.addEventListener('click', async () => {
+        try {
+            btn.innerHTML = 'Generating...';
+            btn.disabled = true;
+
+            const emailContent = getEmailContent();
+            const generatedReply = await generateReply('EN', emailContent);
+
+            insertTextInCompose(generatedReply);
+        } catch (err) {
+            alert('Error al generar respuesta');
+            console.error(err);
+        } finally {
+            btn.innerHTML = 'AI Reply';
+            btn.disabled = false;
+        }
+    });
+
+    toolbar.insertBefore(btn, toolbar.firstChild);
+}
+
 const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
         const addedNodes = Array.from(mutation.addedNodes);
@@ -108,12 +133,10 @@ const observer = new MutationObserver((mutations) => {
 
         if (hasComposeElements) {
             console.log("Compose detectado...");
-            setTimeout(injectButton, 500);
+            setTimeout(injectButtonEN, 500);
+            setTimeout(injectButtonES, 500);
         }
     }
 });
 
-observer.observe(document.body, {
-    childList: true,
-    subtree: true
-});
+observer.observe(document.body, { childList: true, subtree: true });

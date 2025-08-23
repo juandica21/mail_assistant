@@ -1,7 +1,8 @@
 package com.mail.assistant.controller;
 
 import com.mail.assistant.model.EmailRequest;
-import com.mail.assistant.service.EmailService;
+import com.mail.assistant.service.EmailServiceES;
+import com.mail.assistant.service.EmailServiceEN;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,11 +13,19 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins="*")
 public class EmailController {
 
-    private final EmailService emailService;
+    private final EmailServiceEN emailServiceEN;
+    private final EmailServiceES emailServiceES;
 
-    @PostMapping("/generate")
-    public ResponseEntity<String> generateEmail(@RequestBody EmailRequest emailRequest){
-        String response = emailService.generateReplay(emailRequest);
+    @PostMapping("/generateES")
+    public ResponseEntity<String> generateEmailES(@RequestBody EmailRequest emailRequest){
+        String response = emailServiceES.generateReplay(emailRequest);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/generateEN")
+    public ResponseEntity<String> generateEmailEN(@RequestBody EmailRequest emailRequest){
+        String response = emailServiceEN.generateReplay(emailRequest);
+        return ResponseEntity.ok(response);
+    }
+
 }

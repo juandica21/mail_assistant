@@ -1,12 +1,26 @@
 {
-  "name": "Email Reply Assitant",
-  "description": "Reply Generator por SpringIA",
-  "version": "1.0",
   "manifest_version": 3,
-  "permissions": ["activeTab", "storage"],
+  "name": "Mail Assistant",
+  "version": "1.0",
+  "description": "Genera respuestas de email usando tu backend Spring Boot.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "sidePanel",
+    "scripting"
+  ],
+  "action": {
+    "default_title": "Mail Assistant"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
   "host_permissions": [
     "http://localhost:8080/*",
-    "*://mail.google.com/*"
+    "<all_urls>"
   ],
   "content_scripts": [
     {
@@ -16,13 +30,7 @@
       "run_at": "document_end"
     }
   ],
-  "web_accessible_resources": [
-    {
-      "resources": [ "icons/*" ],
-      "matches": ["*://mail.google.com/*"]
-    }
-  ],
-  "action": {
-    "default_title": "Email Reply Assitant"
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
   }
 }
