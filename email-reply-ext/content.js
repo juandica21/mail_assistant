@@ -1,4 +1,3 @@
-// ======= Helpers =======
 function findComposeToolbar() {
     const selectors = ['.btC', '.aDh', '[role="toolbar"]', '.gU.Up'];
     for (const selector of selectors) {
@@ -115,7 +114,6 @@ function injectButtonDef() {
     injectButton('AI Reply', 'ai-reply-button-en', 'EN');
 }
 
-// ======= Observador =======
 const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
         const addedNodes = Array.from(mutation.addedNodes);
