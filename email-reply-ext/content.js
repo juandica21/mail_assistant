@@ -45,7 +45,7 @@ async function generateReply(language, emailContent) {
         throw new Error('Falta configuración de backend');
     }
 
-    const endpoint = language === 'ES' ? '/api/email/generateES' : '/api/email/generateEN';
+    const endpoint = '/api/email/generate';
 
     const response = await fetch(`${backendUrl}${endpoint}`, {
         method: 'POST',
@@ -88,7 +88,7 @@ function injectButton(label, className, language) {
     const btn = createBtnReplyAI(label, className);
     btn.addEventListener('click', async () => {
         try {
-            btn.innerHTML = language === 'ES' ? 'Generando...' : 'Generating...';
+            btn.innerHTML = 'Generating...';
             btn.style.pointerEvents = 'none';
 
             const emailContent = getEmailContent();
@@ -111,11 +111,7 @@ function injectButton(label, className, language) {
     toolbar.insertBefore(btn, toolbar.firstChild);
 }
 
-function injectButtonES() {
-    injectButton('RespuestaIA', 'ai-reply-button-es', 'ES');
-}
-
-function injectButtonEN() {
+function injectButtonDef() {
     injectButton('AI Reply', 'ai-reply-button-en', 'EN');
 }
 
@@ -131,8 +127,7 @@ const observer = new MutationObserver((mutations) => {
 
         if (hasComposeElements) {
             console.log("Compose detectado...");
-            setTimeout(injectButtonEN, 500);
-            setTimeout(injectButtonES, 500);
+            setTimeout(injectButtonDef, 500);
         }
     }
 });

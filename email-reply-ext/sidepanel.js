@@ -1,4 +1,4 @@
-const backendUrl = "http://localhost:8080"; // Cambia si tienes otro backend
+const backendUrl = "http://localhost:8080";
 
 async function fetchUsers() {
     try {
@@ -6,7 +6,7 @@ async function fetchUsers() {
         const users = await res.json();
         renderUsers(users);
     } catch (err) {
-        console.error("Error cargando usuarios:", err);
+        console.error("Error loading users:", err);
     }
 }
 
@@ -17,18 +17,26 @@ function renderUsers(users) {
     showInfo.innerHTML = "";
 
     users.forEach(u => {
-        const div = document.createElement("div");
-        div.textContent = u.name;
-        div.style.cursor = "pointer";
-        div.addEventListener("click", () => {
+        const card = document.createElement("div");
+        card.classList.add("user-card");
+        card.textContent = u.name;
+        card.style.cursor = "pointer";
 
+        card.addEventListener("click", () => {
             chrome.storage.sync.set({ userInfo: u.info }, () => {
-                alert(`Usuario seleccionado: ${u.name}`);
+                alert(`User selected: ${u.name}`);
             });
 
-            showInfo.innerHTML = `<strong>USERNAME:</strong> ${u.name}<br><strong>INFO:</strong> ${u.info}`;
+            showInfo.innerHTML = `
+                <div class="info-card">
+                    <p><strong>USERNAME:</strong> ${u.name}</p>
+                    <p><strong>INFO:</strong> ${u.info}</p>
+                </div>
+            `;
+
         });
-        userList.appendChild(div);
+
+        userList.appendChild(card);
     });
 }
 
@@ -54,7 +62,7 @@ document.getElementById("createUserBtn").addEventListener("click", async () => {
         fetchUsers();
     } catch (err) {
         console.error(err);
-        alert("Error al crear usuario");
+        alert("Error creating new user.");
     }
 });
 
