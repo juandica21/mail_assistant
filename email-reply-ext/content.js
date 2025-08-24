@@ -1,3 +1,4 @@
+// ======= Helpers =======
 function findComposeToolbar() {
     const selectors = ['.btC', '.aDh', '[role="toolbar"]', '.gU.Up'];
     for (const selector of selectors) {
@@ -16,29 +17,36 @@ function createBtnReplyAI(label, className) {
     btn.innerHTML = label;
     btn.setAttribute('role', 'button');
     btn.setAttribute('data-tooltip', `Generar ${label}`);
+    btn.style.cursor = 'pointer';
     return btn;
 }
 
 function getEmailContent() {
-    const selectors = ['.h7', '.a3s.aiL', '.gmail_quote', '[role="presentation"]'];
+    const selectors = ['.h7', '.a3s.aiL', '[role="presentation"]'];
     for (const selector of selectors) {
         const cont = document.querySelector(selector);
-        if (cont) return cont.innerText.trim();
+        if (cont) {
+            // Evitamos incluir la cita del correo anterior
+            const quotes = cont.querySelectorAll('.gmail_quote');
+            quotes.forEach(q => q.remove());
+            return cont.innerText.trim();
+        }
     }
     return '';
 }
 
 async function generateReply(language, emailContent) {
-    const { backendUrl, userInfo } = await chrome.storage.sync.get(['backendUrl', 'userInfo']);
-
-    const selectedUserInfo = userInfo || "No hay datos adicionales"; // <-- valor por defecto
+    const storage = await chrome.storage.sync.get(['userInfo']);
+    const backendUrl = "http://localhost:8080";
+    const selectedUserInfo = storage.userInfo || "No hay datos adicionales";
 
     if (!backendUrl) {
         alert('Configura el backend en el panel lateral');
-        throw new Error('Falta configuración');
+        throw new Error('Falta configuración de backend');
     }
 
     const endpoint = language === 'ES' ? '/api/email/generateES' : '/api/email/generateEN';
+
     const response = await fetch(`${backendUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,78 +58,68 @@ async function generateReply(language, emailContent) {
     });
 
     if (!response.ok) throw new Error('Error en la consulta a la API');
+
     return await response.text();
 }
 
 function insertTextInCompose(text) {
     const composeBox = document.querySelector('[role="textbox"][g_editable="true"]');
     if (composeBox) {
-        composeBox.innerHTML = '';
+        composeBox.textContent = text;
         composeBox.focus();
-        document.execCommand('insertText', false, text);
+        const range = document.createRange();
+        range.selectNodeContents(composeBox);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
     } else {
         console.error('ComposeBox no encontrada...');
     }
 }
 
-function injectButtonES() {
-    const existingBtn = document.querySelector('.ai-reply-button-es');
+function injectButton(label, className, language) {
+    const existingBtn = document.querySelector(`.${className}`);
     if (existingBtn) existingBtn.remove();
 
     const toolbar = findComposeToolbar();
     if (!toolbar) return;
 
-    const btn = createBtnReplyAI('RespuestaIA', 'ai-reply-button-es');
+    const btn = createBtnReplyAI(label, className);
     btn.addEventListener('click', async () => {
         try {
-            btn.innerHTML = 'Generando...';
-            btn.disabled = true;
+            btn.innerHTML = language === 'ES' ? 'Generando...' : 'Generating...';
+            btn.style.pointerEvents = 'none';
 
             const emailContent = getEmailContent();
-            const generatedReply = await generateReply('ES', emailContent);
+            if (!emailContent) {
+                alert('No se encontró contenido del email para generar la respuesta.');
+                return;
+            }
 
+            const generatedReply = await generateReply(language, emailContent);
             insertTextInCompose(generatedReply);
         } catch (err) {
             alert('Error al generar respuesta');
             console.error(err);
         } finally {
-            btn.innerHTML = 'RespuestaIA';
-            btn.disabled = false;
+            btn.innerHTML = label;
+            btn.style.pointerEvents = 'auto';
         }
     });
 
     toolbar.insertBefore(btn, toolbar.firstChild);
+}
+
+function injectButtonES() {
+    injectButton('RespuestaIA', 'ai-reply-button-es', 'ES');
 }
 
 function injectButtonEN() {
-    const existingBtn = document.querySelector('.ai-reply-button-en');
-    if (existingBtn) existingBtn.remove();
-
-    const toolbar = findComposeToolbar();
-    if (!toolbar) return;
-
-    const btn = createBtnReplyAI('AI Reply', 'ai-reply-button-en');
-    btn.addEventListener('click', async () => {
-        try {
-            btn.innerHTML = 'Generating...';
-            btn.disabled = true;
-
-            const emailContent = getEmailContent();
-            const generatedReply = await generateReply('EN', emailContent);
-
-            insertTextInCompose(generatedReply);
-        } catch (err) {
-            alert('Error al generar respuesta');
-            console.error(err);
-        } finally {
-            btn.innerHTML = 'AI Reply';
-            btn.disabled = false;
-        }
-    });
-
-    toolbar.insertBefore(btn, toolbar.firstChild);
+    injectButton('AI Reply', 'ai-reply-button-en', 'EN');
 }
 
+// ======= Observador =======
 const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
         const addedNodes = Array.from(mutation.addedNodes);
@@ -139,4 +137,5 @@ const observer = new MutationObserver((mutations) => {
     }
 });
 
-observer.observe(document.body, { childList: true, subtree: true });
+const mainContainer = document.querySelector('div[role="main"]') || document.body;
+observer.observe(mainContainer, { childList: true, subtree: true });

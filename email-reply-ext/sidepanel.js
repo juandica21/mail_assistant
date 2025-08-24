@@ -12,19 +12,26 @@ async function fetchUsers() {
 
 function renderUsers(users) {
     const userList = document.getElementById("userList");
+    const showInfo = document.getElementById("show-info-users");
     userList.innerHTML = "";
+    showInfo.innerHTML = "";
+
     users.forEach(u => {
         const div = document.createElement("div");
         div.textContent = u.name;
         div.style.cursor = "pointer";
         div.addEventListener("click", () => {
+
             chrome.storage.sync.set({ userInfo: u.info }, () => {
                 alert(`Usuario seleccionado: ${u.name}`);
             });
+
+            showInfo.innerHTML = `<strong>USERNAME:</strong> ${u.name}<br><strong>INFO:</strong> ${u.info}`;
         });
         userList.appendChild(div);
     });
 }
+
 
 document.getElementById("createUserBtn").addEventListener("click", async () => {
     const name = document.getElementById("newUserName").value.trim();
